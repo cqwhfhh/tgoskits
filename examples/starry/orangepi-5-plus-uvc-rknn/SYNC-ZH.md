@@ -281,7 +281,7 @@ YOLO_RESULT index=3 det=0 class=person confidence=64.7% box=(115,77,155,153) cen
 
 ## 注意事项
 
-- `sys_rseq registration is unsupported; returning ENOSYS` 是当前 StarryOS 对 rseq 的兼容性提示，不影响该 demo 运行。
+- `sys_rseq` 已支持注册/注销；当前仍未实现完整的 restart-abort 处理，但不会影响该 demo 运行。
 - `attempt to claim already-claimed interface 1` 当前不是致命错误；只要后续出现 `stream-rknn: streaming started`，说明摄像头流已经启动。
 - RGA 在 StarryOS 下可能打印打开失败或回退 CPU 处理的日志；当前 demo 仍可继续走 CPU 图像转换和 RKNN 推理。
 - 如果网页打不开，先确认 IP 是否正确，再确认 StarryOS 日志中是否出现 `HTTP MJPEG server listening on 0.0.0.0:8080`。

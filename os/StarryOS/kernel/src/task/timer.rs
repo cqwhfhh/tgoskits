@@ -62,11 +62,11 @@ lazy_static! {
 #[derive(Eq, PartialEq, Debug, Clone, Copy, FromRepr)]
 pub enum ITimerType {
     /// 统计系统实际运行时间
-    Real    = 0,
+    Real = 0,
     /// 统计用户态运行时间
     Virtual = 1,
     /// 统计进程的所有用户态/内核态运行时间
-    Prof    = 2,
+    Prof = 2,
 }
 
 impl ITimerType {

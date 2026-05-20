@@ -64,6 +64,14 @@ impl<T> Deref for AssumeSync<T> {
 /// A one-shot flag that suppresses exactly one signal check.
 struct NextSignalCheckBlock(AtomicBool);
 
+/// The registered `rseq(2)` state for a thread.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct RseqRegistration {
+    pub addr: usize,
+    pub len: usize,
+    pub sig: u32,
+}
+
 impl NextSignalCheckBlock {
     const fn new() -> Self {
         Self(AtomicBool::new(false))
@@ -122,6 +130,12 @@ pub struct Thread {
     /// sequences (`rseq(2)`).
     rseq_area: AtomicUsize,
 
+    /// The registered `rseq(2)` area length.
+    rseq_len: AtomicUsize,
+
+    /// The registered `rseq(2)` abort signal.
+    rseq_sig: AtomicU32,
+
     /// The signal to send to this thread when its parent dies (PR_SET_PDEATHSIG).
     pdeathsig: AtomicU32,
 
@@ -163,6 +177,8 @@ impl Thread {
             block_next_signal_check: NextSignalCheckBlock::new(),
             exit_event: Arc::default(),
             rseq_area: AtomicUsize::new(0),
+            rseq_len: AtomicUsize::new(0),
+            rseq_sig: AtomicU32::new(0),
             pdeathsig: AtomicU32::new(0),
             cred: SpinNoIrq::new(cred),
             #[cfg(feature = "kcov")]
@@ -298,9 +314,30 @@ impl Thread {
         self.rseq_area.load(Ordering::SeqCst)
     }
 
-    /// Set the registered rseq area pointer.
-    pub fn set_rseq_area(&self, addr: usize) {
+    /// Get the registered `rseq(2)` state.
+    pub fn rseq_registration(&self) -> Option<RseqRegistration> {
+        let addr = self.rseq_area();
+        if addr == 0 {
+            return None;
+        }
+
+        Some(RseqRegistration {
+            addr,
+            len: self.rseq_len.load(Ordering::SeqCst),
+            sig: self.rseq_sig.load(Ordering::SeqCst),
+        })
+    }
+
+    /// Set the registered `rseq(2)` state.
+    pub fn set_rseq_registration(&self, addr: usize, len: usize, sig: u32) {
         self.rseq_area.store(addr, Ordering::SeqCst);
+        self.rseq_len.store(len, Ordering::SeqCst);
+        self.rseq_sig.store(sig, Ordering::SeqCst);
+    }
+
+    /// Clear the registered `rseq(2)` state.
+    pub fn clear_rseq_registration(&self) {
+        self.set_rseq_registration(0, 0, 0);
     }
 
     /// Block the next signal check for this thread.
